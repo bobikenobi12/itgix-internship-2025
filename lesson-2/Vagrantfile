@@ -1,0 +1,81 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/rocky9"
+
+  (1..3).each do |i|
+    config.vm.define "vm#{i}" do |vm_config|
+      vm_config.vm.hostname = "vm#{i}" # Set hostnames for easier identification
+
+      vm_config.vm.provider "qemu" do |qe|
+        qe.arch = "x86_64"
+        qe.machine = "q35"
+        qe.cpu = "max"
+        qe.net_device = "virtio-net-pci"
+        qe.ssh_port = 50022 + i
+      end
+
+      # Provision vm1 to be the Ansible control node
+      if i == 1
+        vm_config.vm.provision "shell", inline: <<-SHELL
+          echo "Provisioning vm1 as Ansible Control Node..."
+
+          # Install EPEL and Ansible on vm1
+          sudo yum install epel-release -y
+          sudo yum install ansible -y
+
+          # Create the 'ansible' user on vm1 (if not already existing from the box)
+          # Make sure this user has sudo no-password access, or Ansible will prompt for it.
+          # The 'generic/rocky9' box usually has a 'vagrant' user with sudo no-password.
+          # Let's stick with 'vagrant' for simplicity for now, or create 'ansible' user and grant sudo.
+
+          # For simplicity, let's assume we use the default 'vagrant' user on vm1
+          # to run Ansible commands. This user usually has passwordless sudo.
+          # If you want to use a different 'ansible' user, you'd need to create it here
+          # and configure sudoers for it.
+
+          # Create inventory file on vm1
+          echo "[webservers]" | sudo tee /home/vagrant/inventory # Or /home/ansible if you create the user
+          echo "vm2" | sudo tee -a /home/vagrant/inventory
+          echo "vm3" | sudo tee -a /home/vagrant/inventory
+
+          # Create ansible.cfg file on vm1
+          sudo mkdir -p /home/vagrant/.ansible # Or /home/ansible/.ansible
+          sudo tee /home/vagrant/.ansible/ansible.cfg <<EOF
+[defaults]
+remote_user = vagrant # The user on vm2 and vm3 to connect as
+host_key_checking = false
+inventory = /home/vagrant/inventory # Absolute path to the inventory file on vm1
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user = root
+become_ask_pass = False
+EOF
+          sudo chown -R vagrant:vagrant /home/vagrant/.ansible # Ensure correct ownership
+          sudo chown vagrant:vagrant /home/vagrant/inventory
+
+          # Generate SSH keys on vm1 for passwordless access to vm2 and vm3
+          # Important: This assumes vm1 doesn't already have an SSH key pair
+          # If it does, you might want to skip key generation and just copy the public key.
+          if [ ! -f /home/vagrant/.ssh/id_rsa ]; then
+            sudo -u vagrant ssh-keygen -t rsa -N "" -f /home/vagrant/.ssh/id_rsa
+          fi
+
+          # Copy vm1's public key to vm2 and vm3's authorized_keys
+          # This part is tricky if you don't have a direct way to copy during provisioning.
+          # The easiest way is often to do it manually *after* `vagrant up`.
+          # However, for a fully automated setup, you'd usually use a separate
+          # playbook or a more advanced Vagrant provisioner.
+
+          # For now, let's assume manual setup of SSH keys from vm1 to vm2/vm3
+          # or rely on Vagrant's default SSH user if it's consistent.
+
+          echo "Ansible setup on vm1 complete. You will need to manually copy vm1's SSH public key to vm2 and vm3."
+          echo "From vm1, run: ssh-copy-id vagrant@vm2"
+          echo "From vm1, run: ssh-copy-id vagrant@vm3"
+          echo "(Enter 'yes' for fingerprint and 'vagrant' for password if prompted)"
+        SHELL
+      end
+    end
+  end
+end
