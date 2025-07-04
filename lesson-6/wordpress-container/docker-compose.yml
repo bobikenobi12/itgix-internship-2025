@@ -1,0 +1,32 @@
+version: '3.3'
+
+services:
+  db:
+    image: mysql:latest
+    env_file:
+      - ./.env # Specify the path to your .env file
+    environment:
+      # These now reference the variables from the .env file
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./data:/var/lib/mysql
+
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:latest
+    ports:
+      - "8080:80"
+    env_file:
+      - ./.env # Specify the path to your .env file
+    environment:
+      # These now reference the variables from the .env file
+      WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    volumes:
+      - ./wp-content:/var/www/html/wp-content

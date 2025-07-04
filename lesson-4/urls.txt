@@ -1,0 +1,7 @@
+1. AWS S3 Public Bucket - http://ivanlambev-na-borislav.s3-website.eu-central-1.amazonaws.com/
+
+2. AWS EC2 Instance - http://bborisov-loadbalancer-1041369292.eu-central-1.elb.amazonaws.com/
+
+3. AWS API Gateway with POST to a Lambda that calls DynamoDB - curl https://77ccj9mg0g.execute-api.eu-central-1.amazonaws.com/TEst/BBORISOVDYNAMODBMANAGER \
+-H "Content-Type: application/json" \
+-d '{"operation": "create", "payload": {"Item": {"id": "5678EFGH", "number": 15}}}'
